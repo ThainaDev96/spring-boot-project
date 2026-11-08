@@ -40,6 +40,20 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- JPA e Hibernate: transformam classes Java em tabelas do banco e permitem salvar e buscar dados sem escrever SQL na mão -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+
+		<!-- Driver do PostgreSQL: é o "tradutor" que permite ao Java conversar com o banco -->
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<!-- runtime: o driver só é necessário quando o projeto está rodando, não para compilar o código -->
+			<scope>runtime</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

@@ -1,0 +1,15 @@
+services:
+  postgres-db:                          # nome do serviço dentro do compose
+    image: postgres:16-alpine           # qual banco baixar (PostgreSQL 16, versão leve)
+    container_name: orientador-postgres # nome do conteiner
+    environment:                        # configurações criadas na primeira vez
+      POSTGRES_DB: ${DB_NAME}           # nome do banco
+      POSTGRES_USER: ${DB_USER}         # usuário
+      POSTGRES_PASSWORD: ${DB_PASSWORD} # senha
+    ports:
+      - "${DB_PORT}:5432"               # porta-do-seu-PC : porta-dentro-do-conteiner
+    volumes:
+      - postgres_data:/var/lib/postgresql/data   # guarda os dados de forma permanente
+
+volumes:
+  postgres_data:                        # declara o espaço de armazenamento

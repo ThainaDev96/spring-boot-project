@@ -14,7 +14,7 @@
 | Enum `ProgramaSocial` | Cardápio: lista fixa dos pratos que podem ser pedidos | Define quais programas existem. Guarda os 9 IDs em um lugar só, com nome legível (`PROUNI` em vez de `57`). Só os 9 programas do orientador são aceitos, e se um ID mudar, a alteração é em uma linha |
 | DTO `ServicoGovResponse` | Embalagem: o molde onde o prato chega, só com o que o cliente pediu | Define como a resposta chega. Transforma o JSON do gov.br em objeto Java (`servico.nome()`), seleciona só o que o site usa e troca o `String` cru por algo tipado, então o IntelliJ avisa de erros antes de rodar |
 | DTO `ProgramaResumo` | Cardápio resumido: só o nome do prato e o número para pedir | Guarda o `codigo` (usado na URL, como `bolsa-familia`) e o `nome` (mostrado na tela, como `Bolsa Família`). Monta a lista de `/api/programas` sem consultar o gov.br, e deixa os detalhes completos para o `ServicoGovResponse` |
-
+| Interface `UsuarioRepository` | Estoquista: guarda e busca as fichas dos usuários na despensa | Só lista o que ele faz, sem código dentro. Estende `JpaRepository`, que já traz `save` e `findById`, e tem `findByEmail` e `existsByEmail`. O Spring escreve o código sozinho ao ligar |
 
 ### Tratamento de erros do Spring Boot
 
@@ -39,3 +39,10 @@
 |--------|-------|-----------|
 | `application.properties` | Caderno de regras da casa: o Spring lê ao ligar | Monta o endereço do banco com as variáveis do `.env` e tem o `ddl-auto=update`, que cria as tabelas sozinho a partir das classes `@Entity` |
 | `pom.xml` | Lista de compras: as ferramentas que o Maven baixa | Traz o `spring-boot-starter-data-jpa`, que conversa com o banco, e o driver `postgresql` |
+
+### Usuário e banco de dados do Spring Boot
+
+| Classe | Papel | No código |
+|--------|-------|-----------|
+| `Usuario` | Ficha de cadastro: o molde que cada cliente preenche | Marcada com `@Entity` e `@Table(name = "usuario")`, vira a tabela `usuario` no PostgreSQL. Tem `id` (gerado pelo banco), `nome`, `email` (único) e `senha`, com getters e setters para ler e preencher. O Hibernate cria a tabela ao ligar o Spring |
+| `UsuarioRepository` | Estoquista: entra na despensa para guardar e buscar as fichas | Interface que estende `JpaRepository<Usuario, Long>` e já traz o **CRUD** pronto (`save`, `findById`, `findAll`, `delete`). Tem também `findByEmail`, que busca pelo e-mail e devolve um `Optional`, e `existsByEmail`, que diz se o e-mail já está cadastrado. O Spring escreve o código sozinho ao ligar |

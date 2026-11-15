@@ -20,6 +20,9 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import java.security.Principal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.server.ResponseStatusException;
 
 // Recebe os pedidos de cadastro e login que o site envia.
 // @RestController: esta classe responde pedidos HTTP e devolve JSON.
@@ -74,6 +77,19 @@ public class AuthController {
 
         // 3. Devolve id, nome e e-mail. A senha não volta
         Usuario usuario = usuarioService.buscarPorEmail(request.email());
+        return new UsuarioResponse(usuario.getId(), usuario.getNome(), usuario.getEmail());
+    }
+
+    // Rota "quem sou eu": GET /api/auth/me
+    // O Principal é quem está logado. Se ninguém entrou, ele vem vazio
+    @GetMapping("/me")
+    public UsuarioResponse eu(Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Você não está logado.");
+        }
+
+        // O nome do Principal é o e-mail usado no login
+        Usuario usuario = usuarioService.buscarPorEmail(principal.getName());
         return new UsuarioResponse(usuario.getId(), usuario.getNome(), usuario.getEmail());
     }
 }

@@ -72,3 +72,13 @@
 | `UsuarioService` (método novo) | Cozinha: busca a ficha do cliente que acabou de entrar | O método `buscarPorEmail` procura o usuário com `findByEmail`. É usado depois do login, para devolver `id`, `nome` e `email` |
 | `AuthController` (método novo) | Garçom do login: recebe e-mail e senha e confere na porta | Rota `POST /api/auth/login`. Faz 3 passos: confere e-mail e senha com o `AuthenticationManager`, guarda na sessão que a pessoa entrou (o navegador recebe um cookie e o reenvia nas próximas chamadas) e responde com o `UsuarioResponse`, sem a senha |
 | `ApiExceptionHandler` (método novo) | Gerente: explica ao cliente que o e-mail ou a senha estão errados | Ganhou um método com `@ExceptionHandler(BadCredentialsException.class)` que devolve **401** com a mensagem "E-mail ou senha incorretos." em JSON. A mensagem é a mesma para senha errada e para e-mail inexistente, para ninguém descobrir quais e-mails têm conta |
+
+### Logout, quem sou eu e CORS do Spring Boot
+
+| Classe | Papel | No código |
+|--------|-------|-----------|
+| `SecurityConfig` (logout) | Saída da porta: a pessoa devolve a ficha e sai | O `.logout(...)` no `filtroDeSeguranca` cria a rota `POST /api/auth/logout`. Ela encerra a sessão, e depois disso as rotas protegidas voltam a responder **403** para aquela pessoa |
+| `SecurityConfig` (rota `/error`) | Corredor de serviço: precisa estar aberto para o aviso passar | Libera a rota interna `/error` do Spring com `permitAll`. Sem isso, o erro **401** do `/me` virava **403**, porque o Spring usa o `/error` por dentro para montar a resposta |
+| `SecurityConfig` (CORS) | Aviso na porta: "siga a lista de convidados" | A linha `.cors(Customizer.withDefaults())` manda o Spring Security usar a lista da `CorsConfig` |
+| `CorsConfig` | Lista de convidados: quais sites de fora podem falar com o back | Usa `@Configuration` e `@Bean` para criar o `CorsConfigurationSource`, com os endereços do front permitidos (como `http://localhost:5173`), os métodos e o `setAllowCredentials(true)`, que deixa o navegador enviar o cookie da sessão. Sem essa lista, o navegador bloqueia o front de chamar o back |
+| `AuthController` (método `eu`) | Garçom: "quem é o cliente desta mesa?" | Rota `GET /api/auth/me`. Se a pessoa está logada, devolve o `UsuarioResponse`. Se não, responde **401**. O front usa ao recarregar a página, para saber se a pessoa continua logada |

@@ -7,6 +7,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 
 // Classe de configuração: o Spring lê ao ligar e executa os métodos @Bean.
@@ -28,13 +29,25 @@ public class SecurityConfig {
                 // Desativa a proteção CSRF por enquanto. Ela exige um token extra em todo POST,
                 // o que bloquearia o cadastro.
                 .csrf(csrf -> csrf.disable())
+
+                // CORS: usa a lista de endereços da classe CorsConfig
+                .cors(Customizer.withDefaults())
+
                 .authorizeHttpRequests(regras -> regras
 
                         // Cadastro e login: qualquer pessoa pode acessar.
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        // Rota interna de erro do Spring: liberada para o 401 chegar ao front
+                        .requestMatchers("/error").permitAll()
+
                         // Todo o resto: só quem estiver logado.
                         .anyRequest().authenticated()
+                )
+                // Logout: POST /api/auth/logout encerra a sessão
+                .logout(logout -> logout
+                        .logoutUrl("/api/auth/logout")
+                        .logoutSuccessHandler((req, res, auth) -> res.setStatus(200))
                 );
         return http.build();
     }

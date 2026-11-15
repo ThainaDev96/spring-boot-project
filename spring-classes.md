@@ -46,3 +46,29 @@
 |--------|-------|-----------|
 | `Usuario` | Ficha de cadastro: o molde que cada cliente preenche | Marcada com `@Entity` e `@Table(name = "usuario")`, vira a tabela `usuario` no PostgreSQL. Tem `id` (gerado pelo banco), `nome`, `email` (único) e `senha`, com getters e setters para ler e preencher. O Hibernate cria a tabela ao ligar o Spring |
 | `UsuarioRepository` | Estoquista: entra na despensa para guardar e buscar as fichas | Interface que estende `JpaRepository<Usuario, Long>` e já traz o **CRUD** pronto (`save`, `findById`, `findAll`, `delete`). Tem também `findByEmail`, que busca pelo e-mail e devolve um `Optional`, e `existsByEmail`, que diz se o e-mail já está cadastrado. O Spring escreve o código sozinho ao ligar |
+
+### Cadastro e segurança do Spring Boot
+
+| Classe | Papel| No código |
+|--------|------|-----------|
+| `spring-boot-starter-security` (no `pom.xml`) | Contratação do segurança da porta| Dependência que traz o login e a proteção das rotas. Ao ligar o Spring, ela já tranca todas as rotas e cria um usuário de teste na memória, que depois trocamos pelo login com o nosso banco |
+| `SecurityConfig` | Gerente da segurança: monta as peças que o segurança da porta precisa | Usa `@Configuration` e `@Bean` para criar o `PasswordEncoder` (BCrypt), que transforma a senha em hash (código embaralhado que não volta ao original) e confere a senha no login. Sem ele, a senha ficaria legível no banco |
+| DTO `CadastroRequest` | Formulário de cadastro: o que o cliente preenche| Record com `nome`, `email` e `senha`. Transforma o JSON que o site envia em objeto Java. Fica separado da `Usuario` porque aqui a senha chega como foi digitada, e na ficha guardada ela só pode estar em hash |
+| DTO `UsuarioResponse` | Comprovante: o que o cliente recebe de volta na interface, sem a senha| Record com `id`, `nome` e `email`. É a resposta do cadastro. A senha fica de fora de propósito, para nunca sair do back |
+| `EmailJaCadastradoException` | Aviso no balcão: "já existe uma ficha com este e-mail" | Erro lançado pelo `cadastrar` do `UsuarioService` quando alguém tenta se cadastrar com um e-mail que já está no banco |
+| `ApiExceptionHandler` (método novo) | Gerente: explica ao cliente o aviso do e-mail repetido | Ganhou um método com `@ExceptionHandler(EmailJaCadastradoException.class)` que devolve **409** (conflito) com a mensagem em JSON |
+| `UsuarioService` | Cozinha do cadastro: confere o e-mail, embaralha a senha e manda guardar | O método `cadastrar` recusa e-mail repetido com `EmailJaCadastradoException`, aplica o hash na senha com o `PasswordEncoder` e salva pelo `UsuarioRepository` |
+| `AuthController` | Garçom do cadastro: recebe a ficha do cliente e leva à cozinha | Rota `POST /api/auth/cadastro`: recebe o JSON, chama o `UsuarioService` e responde **201** com o `UsuarioResponse` |
+
+
+### Login e sessão do Spring Boot
+
+| Classe | Papel | No código |
+|--------|-------|-----------|
+| `UsuarioDetailsService` | Fichário do segurança: o segurança consulta a ficha do cliente pelo e-mail | Implementa `UserDetailsService`. O método `loadUserByUsername` recebe o e-mail, busca no banco com `findByEmail` e entrega ao Spring o e-mail e a senha em hash. Se não achar, lança `UsernameNotFoundException`. O Spring compara a senha digitada com o hash usando o BCrypt. Com ele, a linha `Using generated security password` some do log e o usuário de teste `user` deixa de existir |
+| DTO `LoginRequest` | Formulário de login: só o que o cliente preenche para entrar | Record com `email` e `senha`. Transforma o JSON que o site envia no login em objeto Java. Fica separado do `CadastroRequest` porque o login não precisa do `nome` |
+| `SecurityConfig` (método `filtroDeSeguranca`) | Regras da porta: quem entra livre e quem precisa de ficha | Define as regras de acesso. `/api/auth/**` (cadastro e login) fica liberado para todos, e o resto exige login. Sem entrar, a rota responde **403**. O CSRF está desligado por enquanto e vamos revisar ao ligar o front |
+| `SecurityConfig` (método `authenticationManager`) | Conferente da porta: quem checa se o e-mail e a senha batem | Entrega o `AuthenticationManager` para o controller usar. Ele chama o `UsuarioDetailsService` para buscar o usuário e confere a senha com o BCrypt |
+| `UsuarioService` (método novo) | Cozinha: busca a ficha do cliente que acabou de entrar | O método `buscarPorEmail` procura o usuário com `findByEmail`. É usado depois do login, para devolver `id`, `nome` e `email` |
+| `AuthController` (método novo) | Garçom do login: recebe e-mail e senha e confere na porta | Rota `POST /api/auth/login`. Faz 3 passos: confere e-mail e senha com o `AuthenticationManager`, guarda na sessão que a pessoa entrou (o navegador recebe um cookie e o reenvia nas próximas chamadas) e responde com o `UsuarioResponse`, sem a senha |
+| `ApiExceptionHandler` (método novo) | Gerente: explica ao cliente que o e-mail ou a senha estão errados | Ganhou um método com `@ExceptionHandler(BadCredentialsException.class)` que devolve **401** com a mensagem "E-mail ou senha incorretos." em JSON. A mensagem é a mesma para senha errada e para e-mail inexistente, para ninguém descobrir quais e-mails têm conta |
